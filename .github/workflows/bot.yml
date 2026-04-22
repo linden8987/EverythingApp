@@ -1,0 +1,32 @@
+name: EverythingApp Bot
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  code-sanitization:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
+
+    - name: Run Clang-Format
+      # This tool automatically fixes indentation and style errors in main.cpp
+      uses: DoozyX/clang-format-lint-action@v0.17
+      with:
+        source: 'src'
+        extensions: 'cpp,h'
+        inplace: true
+        style: 'Microsoft'
+
+    - name: Commit Fixed Code
+      # If the bot made changes (fixed errors/formatting), it pushes them back
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "🤖 Bot: Fixed code formatting and style errors"
+        file_pattern: 'src/*.cpp src/*.h'
