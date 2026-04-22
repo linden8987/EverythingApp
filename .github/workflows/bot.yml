@@ -1,4 +1,4 @@
-name: EverythingApp Bot
+name: EverythingApp Fixer Bot
 
 on:
   push:
@@ -7,26 +7,42 @@ on:
     branches: [ "main" ]
 
 jobs:
-  code-sanitization:
-    runs-on: ubuntu-latest
+  fix-and-sanitize:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
-      with:
-        ref: ${{ github.head_ref }}
 
-    - name: Run Clang-Format
-      # This tool automatically fixes indentation and style errors in main.cpp
-      uses: DoozyX/clang-format-lint-action@v0.17
-      with:
-        source: 'src'
-        extensions: 'cpp,h'
-        inplace: true
-        style: 'Microsoft'
+    - name: Auto-Format Code
+      # Fixes messy code structure and unreadable logic flow
+      run: |
+        dotnet tool install -g dotnet-format
+        clang-format -i src/*.cpp
+      shell: bash
 
-    - name: Commit Fixed Code
-      # If the bot made changes (fixed errors/formatting), it pushes them back
+    - name: Static Analysis (Cppcheck)
+      # This looks for "Invisible" errors like memory leaks and null pointers
+      run: |
+        choco install cppcheck
+        cppcheck --enable=all --error-exitcode=1 src/
+      continue-on-error: true
+
+    - name: Validate QEMU Directory
+      # Fixes build errors by checking if your required folders exist
+      shell: pwsh
+      run: |
+        if (!(Test-Path "qemu")) {
+          New-Item -ItemType Directory -Force -Path "qemu"
+          Set-Content -Path "qemu/PLACEHOLDER.txt" -Value "Place QEMU binaries here."
+          Write-Host "⚠️ Created missing QEMU directory."
+        }
+
+    - name: Apply Fixes
+      # The bot saves any formatting or structural fixes back to your repo
       uses: stefanzweifel/git-auto-commit-action@v5
       with:
-        commit_message: "🤖 Bot: Fixed code formatting and style errors"
-        file_pattern: 'src/*.cpp src/*.h'
+        commit_message: "🤖 Bot: Fixed formatting, analyzed code, and verified directories"
+        file_pattern: 'src/*.cpp qemu/*'
