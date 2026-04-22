@@ -1,0 +1,31 @@
+name: Build EverythingApp
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Compile EverythingApp
+      shell: cmd
+      run: |
+        # Navigates to your source folder and compiles main.cpp
+        # This creates a standalone executable named EverythingApp.exe
+        cl.exe /EHsc /MT /O2 src/main.cpp /link user32.lib shell32.lib /OUT:EverythingApp.exe
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: EverythingApp-Windows
+        path: EverythingApp.exe
